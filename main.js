@@ -16,7 +16,7 @@ app.use(function(req, res, next){
 })
 
 app.get("/", function(req, res){
-    res.send("VChessServer");
+    res.send("VChessServer2");
 });
 
 app.post("/upload", function(req, res){
