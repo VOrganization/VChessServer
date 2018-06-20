@@ -1,34 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const mysql = require("mysql2");
 const fs = require("fs");
 const crypto = require("crypto");
 
+const db = require("./db");
 const chess = require("./chess");
 
-let connection = mysql.createConnection({
-    host: "localhost",
-    user: "chess",
-    database: "Chess"
-});
-
-async function Query(query, values){
-    return new Promise((reslove, reject) =>{
-        connection.query(query, function(err, results){
-            if(err === null){
-                reslove(results);
-            }
-            else{
-                reject({
-                    status: -1,
-                    msg: "Error: error while cent query to db",
-                    response: err
-                })
-            }
-        });   
-    });
-}
 
 let app = express();
 
@@ -133,14 +111,14 @@ app.post("/upload", (req, res) =>{
                 });
                 let hash = crypto.createHash('md5').update(d).digest("hex");
                 // console.log(hash + "  Q: " + t.quality);
-                Query("INSERT INTO `train` (`ID`, `Quality`, `Hash`, `Data`, `Date`) VALUES (NULL, '"+t.quality+"', '"+hash+"', '"+d+"', NOW())").catch(e => {
+                db.Query("INSERT INTO `train` (`ID`, `Quality`, `Hash`, `Data`, `Date`) VALUES (NULL, '"+t.quality+"', '"+hash+"', '"+d+"', NOW())").catch(e => {
                     res.json(e);
                     res.end();
                 });
             }
         }
 
-        Query("INSERT INTO `games` (`ID`, `Hash`, `Players`, `Moves`, `Date`) VALUES(NULL, '"+hash+"', '"+SPlayers+"', '"+SMoves+"', NOW())").then(e => {
+        db.Query("INSERT INTO `games` (`ID`, `Hash`, `Players`, `Moves`, `Date`) VALUES(NULL, '"+hash+"', '"+SPlayers+"', '"+SMoves+"', NOW())").then(e => {
             res.json({
                 status: 0,
                 msg: "Success",
@@ -165,7 +143,7 @@ app.post("/upload", (req, res) =>{
 });
 
 app.get("/games", (req, res) =>{
-    Query('SELECT * FROM `games`').then((e) => {
+    db.Query('SELECT * FROM `games` ORDER BY Date` DESC LIMIT 500').then((e) => {
         res.json({
             status: 0,
             games: e
@@ -178,9 +156,19 @@ app.get("/games", (req, res) =>{
 });
 
 app.get("/model", (req, res) => {
-    Query('SELECT * FROM `models` ORDER BY `models`.`Cost` ASC').then((e) => {
+    db.Query('SELECT * FROM `models` ORDER BY `models`.`Cost` ASC').then((e) => {
         e[0]["status"] = 0;
         res.json(e[0]);
+        res.end();
+    }).catch((e) => {
+        res.json(e);
+        res.end();
+    });
+});
+
+app.get("/trainData", (req, res) => {
+    db.Query('SELECT * FROM `train` ORDER BY `Quality` DESC, `Date` DESC LIMIT 500').then((e) => {
+        res.json(e);
         res.end();
     }).catch((e) => {
         res.json(e);
