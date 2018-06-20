@@ -4,6 +4,10 @@ const cors = require("cors");
 const fs = require("fs");
 const crypto = require("crypto");
 
+const tf = require('@tensorflow/tfjs');
+require('@tensorflow/tfjs-node');
+tf.setBackend('tensorflow');
+
 const db = require("./db");
 const chess = require("./chess");
 
@@ -176,8 +180,134 @@ app.get("/trainData", (req, res) => {
     });
 });
 
-app.get("/train", (req, res) => {
+async function trainModel(){
+    return new Promise((reslove, reject) => {
+        db.Query('SELECT * FROM `models` ORDER BY `models`.`Cost` ASC LIMIT 3').then((models) => {
+            if(models[0]){
 
+                tf.loadModel('file://models/model.json').then((model) => {
+                    
+                    db.Query('SELECT * FROM `train` ORDER BY `Quality` DESC, `Date` DESC LIMIT 1000').then((train) => {
+                        let inputs = new Array();
+                        let outputs = new Array();
+
+                        for (let i = 0; i < train.length; i++) {
+                            let d = JSON.parse(train[i].Data);
+                            inputs.push(d.input)
+                            outputs.push(d.output)
+                        }  
+
+                        const xs = new tf.tensor2d(inputs);
+                        const ys = new tf.tensor2d(outputs);
+
+                        console.log("Before FIT")
+
+                        model.fit(xs, ys, {
+                            epochs: 10,
+                        }).then((e) => {
+                            console.log("Afetrt FIT");
+                            //console.log(e.history.loss[0]);
+                            console.log(e);
+                            //reslove();
+
+                        }).catch((e) => {
+                            reject({
+                                status: -1,
+                                msg: "Error: Somthing Go Wrong While Traning",
+                                response: e
+                            });    
+                        });
+
+
+                    }).catch((e) => {
+                        reject({
+                            status: -1,
+                            msg: "Error: Cannot Load Training Data",
+                            response: e
+                        });
+                    });
+
+                    reslove();
+                }).catch((e) => {
+                    reject({
+                        status: -1,
+                        msg: "Error: Cannot Load The Model",
+                        response: e
+                    });
+                });
+            }
+            else{
+                const model = tf.sequential({
+                    name: "VChess",
+                    layers: [
+                        tf.layers.dense({
+                            units: 32,
+                            inputShape: [65],
+                            activation: 'sigmoid'
+                        }),
+                        tf.layers.dense({
+                            units: 32,
+                            activation: 'sigmoid'
+                        }),
+                        tf.layers.dense({
+                            units: 16,
+                            activation: 'sigmoid'
+                        }),
+                        tf.layers.dense({
+                            units: 4,
+                            activation: 'sigmoid'
+                        })
+                    ]
+                });
+                
+                model.compile({
+                    optimizer: tf.train.adam(0.1),
+                    loss: tf.losses.meanSquaredError
+                });
+
+                model.save("file://models").then((e) => {
+                    let model_json = fs.readFileSync("models/model.json", "utf8").toString();
+                    let model_bin  = fs.readFileSync("models/weights.bin", "utf8").toString();
+                    let hash = crypto.createHash('md5').update(model_json + model_bin).digest("hex");
+
+                    let model = {
+                        model: JSON.stringify(fs.readFileSync("models/model.json", "utf8")),
+                        weights: fs.readFileSync("models/model.json", "utf8"),
+                    };
+
+                    db.Query("INSERT INTO `models` (`ID`, `Hash`, `Cost`, `Model`, `Date`) VALUES (NULL, '"+hash+"', 10000, '"+JSON.stringify(model)+"', NOW())").then((e) => {
+                        reslove();
+                    }).catch((e) => {
+                        reject({
+                            status: -1,
+                            msg: "Error: Cannot Send Model To db",
+                            response: e
+                        });    
+                    });
+                }).catch((e) => {
+                    reject({
+                        status: -1,
+                        msg: "Error: Cannot Save The Model",
+                        response: e
+                    });
+                });
+            }
+        });
+    });
+}
+
+app.get("/train", (req, res) => {
+    trainModel().then((e) => {
+        res.json({
+            status: 0,
+            msg: "Success",
+            response: "Success",
+        });
+        res.end();
+    }).catch((e) => {
+        res.json(e);
+        res.end();
+    });
 });
 
 app.listen(3000, function(e){
