@@ -5,39 +5,7 @@ const mysql = require("mysql2");
 const fs = require("fs");
 const crypto = require("crypto");
 
-const chessboard = [
-    [-1, -2, -3, -4, -5, -3, -2, -1],
-    [-6, -6, -6, -6, -6, -6, -6, -6],
-    [ 0,  0,  0,  0,  0,  0,  0,  0],
-    [ 0,  0,  0,  0,  0,  0,  0,  0],
-    [ 0,  0,  0,  0,  0,  0,  0,  0],
-    [ 0,  0,  0,  0,  0,  0,  0,  0],
-    [ 6,  6,  6,  6,  6,  6,  6,  6],
-    [ 1,  2,  3,  4,  5,  3,  2,  1]
-];
-
-function CloneChessBoard(chessboard){
-    let newBoard = new Array();
-    for (let y = 0; y < chessboard.length; y++) {
-        let arr = new Array();
-        for (let x = 0; x < chessboard[y].length; x++) {
-            arr.push(chessboard[y][x]);
-        }
-        newBoard.push(arr);
-    }
-    return newBoard;
-}
-
-function CalcInputChessBoard(chessboard, side){
-    let input = new Array();
-    input.push(side);
-    for (let y = 0; y < chessboard.length; y++) {
-        for (let x = 0; x < chessboard[y].length; x++) {
-            input.push(chessboard[y][x]);
-        }
-    }
-    return input;
-}
+const chess = require("./chess");
 
 let connection = mysql.createConnection({
     host: "localhost",
@@ -47,34 +15,18 @@ let connection = mysql.createConnection({
 
 async function Query(query, values){
     return new Promise((reslove, reject) =>{
-        if(values !== undefined){
-            connection.query(query, values, function(err, results){
-                if(err === null){
-                    reslove(results);
-                }
-                else{
-                    reject({
-                        status: -1,
-                        msg: "Error: error while cent query to db",
-                        response: err
-                    })
-                }
-            });
-        }
-        else{
-            connection.query(query, function(err, results){
-                if(err === null){
-                    reslove(results);
-                }
-                else{
-                    reject({
-                        status: -1,
-                        msg: "Error: error while cent query to db",
-                        response: err
-                    })
-                }
-            });
-        }       
+        connection.query(query, function(err, results){
+            if(err === null){
+                reslove(results);
+            }
+            else{
+                reject({
+                    status: -1,
+                    msg: "Error: error while cent query to db",
+                    response: err
+                })
+            }
+        });   
     });
 }
 
@@ -105,7 +57,6 @@ app.post("/upload", (req, res) =>{
         let SMoves = JSON.stringify(moves);
         let hash = crypto.createHash('md5').update(JSON.stringify(moves)).digest("hex");
 
-        console.log(JSON.stringify(players));
         for (let i = 0; i < players.length; i++) {
             let p = players[i];
             p["quality"] = 0;
@@ -122,46 +73,74 @@ app.post("/upload", (req, res) =>{
         }
 
         let points = 0;
-        let prevBoard0 = CloneChessBoard(chessboard);
-        let prevBoard1 = CloneChessBoard(chessboard);
+        let prevBoard0 = chess.CloneChessBoard(chess.chessboard);
+        let prevBoard1 = chess.CloneChessBoard(chess.chessboard);
         let trainData = [];
         for (let i = 0; i < moves.length; i++) {
-            console.log(JSON.stringify(moves[i]));
-            let out = {
-                input: CalcInputChessBoard(prevBoard0, players[moves[i].player].sideID),
-                output: [ moves[i].x1, moves[i].y1, moves[i].x2, moves[i].y2 ],
-                quality: players[moves[i].player].quality,
-                hash: ""
-            }
-            out.hash = crypto.createHash('md5').update(JSON.stringify(out.input) + JSON.stringify(out.output)).digest("hex");
-
-            let enemy = Math.abs(prevBoard0[moves[i].y2][moves[i].x2]);
-            prevBoard0[moves[i].y2][moves[i].x2] = prevBoard0[moves[i].y1][moves[i].x1];
-            prevBoard0[moves[i].y1][moves[i].x1] = 0;
-
-            switch (enemy) {
-                case 6:{
-                    players[moves[i].player].points += 1;
-                    points += 1;
-                    break;
+            //Orginal Data
+            {
+                let out = {
+                    input: chess.CalcInputChessBoard(prevBoard0, players[moves[i].player].sideID),
+                    output: chess.CalcOutputChessBoard(moves[i]),
+                    quality: players[moves[i].player].quality,
+                    player: moves[i].player,
+                    transpose: false
                 }
-            
-                default:
-                    break;
+    
+                let enemy = Math.abs(prevBoard0[moves[i].y2][moves[i].x2]);
+                prevBoard0[moves[i].y2][moves[i].x2] = prevBoard0[moves[i].y1][moves[i].x1];
+                prevBoard0[moves[i].y1][moves[i].x1] = 0;
+    
+                let point = chess.CalcChessPoint(enemy);
+                points += point;
+                players[moves[i].player].points += point;
+    
+                trainData.push(out);
             }
 
+            //Transpose Data
+            {
+                let side = players[moves[i].player].sideID == 1 ? 0 : 1;
+                let m = chess.CalcTransposeOutputChessBoard(moves[i]);
+                let out = {
+                    input: chess.CalcInputChessBoard(prevBoard1, side),
+                    output: m,
+                    quality: players[moves[i].player].quality - 10,
+                    player: moves[i].player,
+                    transpose: true
+                }
 
-            console.log(out.hash + "  Q: " + out.quality);
-            trainData.push(out);
+                prevBoard1[m[3]][m[2]] = prevBoard1[m[1]][m[0]];
+                prevBoard1[m[1]][m[0]] = 0;
+    
+                trainData.push(out);
+            }
         }
 
-        fs.writeFileSync("train.json", JSON.stringify(trainData));
+
+        for (let i = 0; i < players.length; i++) {
+            let p = players[i];
+            p.quality = p.quality * (p.points / points);
+        }
+
+        for (let i = 0; i < trainData.length; i++) {
+            let t = trainData[i];
+            t.quality = players[t.player].quality - (t.transpose == true ? 10 : 0);
+            if(t.quality > 0){
+                let d = JSON.stringify({
+                    input: t.input,
+                    output: t.output,
+                });
+                let hash = crypto.createHash('md5').update(d).digest("hex");
+                // console.log(hash + "  Q: " + t.quality);
+                Query("INSERT INTO `train` (`ID`, `Quality`, `Hash`, `Data`, `Date`) VALUES (NULL, '"+t.quality+"', '"+hash+"', '"+d+"', NOW())").catch(e => {
+                    res.json(e);
+                    res.end();
+                });
+            }
+        }
 
         Query("INSERT INTO `games` (`ID`, `Hash`, `Players`, `Moves`, `Date`) VALUES(NULL, '"+hash+"', '"+SPlayers+"', '"+SMoves+"', NOW())").then(e => {
-            //calc train data;
-
-
-
             res.json({
                 status: 0,
                 msg: "Success",
