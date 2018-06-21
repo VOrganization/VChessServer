@@ -6,8 +6,6 @@ const crypto = require("crypto");
 
 const db = require("./db");
 const chess = require("./chess");
-const net = require("./net");
-const tf = net.tf;
 
 
 let app = express();
