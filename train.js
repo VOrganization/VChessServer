@@ -113,9 +113,11 @@ async function traning(){
 
 function uploadModel(){
     console.log("INFO: Upload Model");
+    runTraining = false;
     saveModel(model).then((outData) => {
         db.Query("INSERT INTO `models` (`ID`, `Hash`, `Cost`, `Model`, `Date`) VALUES (NULL, ?, ?, ?, NOW())",
         [ outData.hash, loss, outData.buffer ]).then((e) => {
+            runTraining = true;
             setTimeout(uploadModel, uploadModelInterval);
         }).catch((e) => {
             console.log("Error: While upload model to db");
