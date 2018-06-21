@@ -8,7 +8,7 @@ let connection = mysql.createConnection({
 
 async function Query(query, values){
     return new Promise((reslove, reject) =>{
-        connection.query(query, function(err, results){
+        connection.query(query, values, function(err, results){
             if(err === null){
                 reslove(results);
             }
