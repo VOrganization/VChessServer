@@ -178,6 +178,6 @@ app.get("/trainData", (req, res) => {
     });
 });
 
-app.listen(3001, function(e){
+app.listen(3000, function(e){
     console.log("Success: Start Server");
 });
