@@ -33,11 +33,11 @@ function CalcInputChessBoard(chessboard, side){
 }
 
 function CalcOutputChessBoard(move){
-    return [ move.x1, move.y1, move.x2, move.y2 ];
+    return [ move.x1 / 7.0, move.y1 / 7.0, move.x2 / 7.0, move.y2 / 7.0 ];
 }
 
 function CalcTransposeOutputChessBoard(move){
-    return [ move.x1, 7 - move.y1, move.x2, 7 - move.y2 ];
+    return [ move.x1 / 7.0, (7 - move.y1) / 7.0, move.x2 / 7.0, (7 - move.y2) / 7.0 ];
 }
 
 function CalcChessPoint(figure){

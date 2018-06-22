@@ -16,6 +16,7 @@ const uploadModelInterval = 10 * 60 * 1000; //10min
 const traningInterval = 500; //500ms
 const traningNumRepeats = 10;
 const traningNumEpochs = 2;
+const lr = 0.1;
 
 let model = null;
 let data = null;
@@ -80,7 +81,7 @@ async function loadModel(data){
 
             tf.loadModel("file://tmp/model/model.json").then((e) => {
                 e.compile({
-                    optimizer: tf.train.sgd(0.1),
+                    optimizer: tf.train.adam(lr),
                     loss: tf.losses.meanSquaredError
                 });
                 reslove(e);
@@ -226,7 +227,7 @@ db.Query("SELECT * FROM `models` ORDER BY `models`.`Cost` ASC LIMIT 1").then((mo
         });
         
         model.compile({
-            optimizer: tf.train.sgd(0.1),
+            optimizer: tf.train.adam(lr),
             loss: tf.losses.meanSquaredError
         });
 
