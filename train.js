@@ -16,7 +16,7 @@ const uploadModelInterval = 10 * 60 * 1000; //10min
 const traningInterval = 500; //500ms
 const traningNumRepeats = 10;
 const traningNumEpochs = 2;
-const lr = 0.1;
+const lr = 0.00001;
 
 let model = null;
 let data = null;
