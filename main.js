@@ -157,9 +157,17 @@ app.get("/games", (req, res) =>{
 
 app.get("/model", (req, res) => {
     db.Query('SELECT * FROM `models` ORDER BY `models`.`Cost` ASC LIMIT 1').then((e) => {
-        e[0]["status"] = 0;
-        res.json(e[0]);
-        res.end();
+        if(e[0]){
+            res.end(e[0].Model, 'binary');
+        }
+        else{
+            res.json({
+                status: -1,
+                msg: "Error: Don't have model to send",
+                response: "Don't have model to send"
+            });
+            res.end();
+        }
     }).catch((e) => {
         res.json(e);
         res.end();
