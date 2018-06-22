@@ -88,8 +88,8 @@ app.post("/upload", (req, res) =>{
                     transpose: true
                 }
 
-                prevBoard1[m[3]][m[2]] = prevBoard1[m[1]][m[0]];
-                prevBoard1[m[1]][m[0]] = 0;
+                prevBoard1[Math.floor(m[3] * 7.0)][Math.floor(m[2] * 7.0)] = prevBoard1[Math.floor(m[1] * 7.0)][Math.floor(m[0] * 7.0)];
+                prevBoard1[Math.floor(m[1] * 7.0)][Math.floor(m[0] * 7.0)] = 0;
     
                 trainData.push(out);
             }
