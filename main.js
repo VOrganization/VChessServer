@@ -158,7 +158,12 @@ app.get("/games", (req, res) =>{
 app.get("/model", (req, res) => {
     db.Query('SELECT * FROM `models` ORDER BY `models`.`Cost` ASC LIMIT 1').then((e) => {
         if(e[0]){
-            res.end(e[0].Model, 'binary');
+            res.writeHead(200, {
+                'Content-Type': "application/octet-stream",
+                'Content-disposition': 'attachment;filename=model.tfm',
+                'Content-Length': e[0].Model.length
+            });
+            res.end(e[0].Model);
         }
         else{
             res.json({
