@@ -207,16 +207,16 @@ db.Query("SELECT * FROM `models` ORDER BY `models`.`Cost` ASC LIMIT 1").then((mo
             name: "VChess",
             layers: [
                 tf.layers.dense({
-                    units: 64,
+                    units: 128,
                     inputShape: [65],
                     activation: 'tanh'
                 }),
                 tf.layers.dense({
-                    units: 64,
+                    units: 128,
                     activation: 'tanh'
                 }),
                 tf.layers.dense({
-                    units: 32,
+                    units: 64,
                     activation: 'tanh'
                 }),
                 tf.layers.dense({

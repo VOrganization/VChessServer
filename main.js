@@ -76,23 +76,23 @@ app.post("/upload", (req, res) =>{
                 trainData.push(out);
             }
 
-            //Transpose Data
-            {
-                let side = players[moves[i].player].sideID == 1 ? 0 : 1;
-                let m = chess.CalcTransposeOutputChessBoard(moves[i]);
-                let out = {
-                    input: chess.CalcInputChessBoard(prevBoard1, side),
-                    output: m,
-                    quality: players[moves[i].player].quality - 10,
-                    player: moves[i].player,
-                    transpose: true
-                }
+            // //Transpose Data
+            // {
+            //     let side = players[moves[i].player].sideID == 1 ? 0 : 1;
+            //     let m = chess.CalcTransposeOutputChessBoard(moves[i]);
+            //     let out = {
+            //         input: chess.CalcInputChessBoard(prevBoard1, side),
+            //         output: m,
+            //         quality: players[moves[i].player].quality - 10,
+            //         player: moves[i].player,
+            //         transpose: true
+            //     }
 
-                prevBoard1[Math.floor(m[3] * 7.0)][Math.floor(m[2] * 7.0)] = prevBoard1[Math.floor(m[1] * 7.0)][Math.floor(m[0] * 7.0)];
-                prevBoard1[Math.floor(m[1] * 7.0)][Math.floor(m[0] * 7.0)] = 0;
+            //     prevBoard1[Math.floor(m[3] * 7.0)][Math.floor(m[2] * 7.0)] = prevBoard1[Math.floor(m[1] * 7.0)][Math.floor(m[0] * 7.0)];
+            //     prevBoard1[Math.floor(m[1] * 7.0)][Math.floor(m[0] * 7.0)] = 0;
     
-                trainData.push(out);
-            }
+            //     trainData.push(out);
+            // }
         }
 
 
@@ -110,7 +110,6 @@ app.post("/upload", (req, res) =>{
                     output: t.output,
                 });
                 let hash = crypto.createHash('md5').update(d).digest("hex");
-                // console.log(hash + "  Q: " + t.quality);
                 db.Query("INSERT INTO `train` (`ID`, `Quality`, `Hash`, `Data`, `Date`) VALUES (NULL, '"+t.quality+"', '"+hash+"', '"+d+"', NOW())").catch(e => {
                     res.json(e);
                     res.end();

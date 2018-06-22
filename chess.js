@@ -26,7 +26,7 @@ function CalcInputChessBoard(chessboard, side){
     input.push(side);
     for (let y = 0; y < chessboard.length; y++) {
         for (let x = 0; x < chessboard[y].length; x++) {
-            input.push(chessboard[y][x]);
+            input.push(chessboard[y][x] / 6.0);
         }
     }
     return input;
